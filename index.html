@@ -243,7 +243,7 @@
   }
 
   /* ====== 工作 - 时段 ====== */
-  .periods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .periods { display: grid; grid-template-columns: repeat(2, 1fr); gap: 14px; }
   .period {
     background: #fff;
     border: 1px solid var(--border);
@@ -733,7 +733,7 @@
           <span class="date-label" id="work-date-label">今天</span>
         </div>
       </div>
-      <div class="panel-sub">按上午 / 中午 / 下午划分，做完打勾 ✅ 标记完成。切换日期可查阅不同天的事项。</div>
+      <div class="panel-sub">按上午 / 下午划分，做完打勾 ✅ 标记完成。切换日期可查阅不同天的事项。</div>
       <div class="periods">
         <div class="period">
           <h4>☀️ 上午</h4>
@@ -741,14 +741,6 @@
           <div class="add-row">
             <input type="text" placeholder="添加待办…" onkeydown="if(event.key==='Enter')addTodo('am',this)">
             <button onclick="addTodo('am',this.previousElementSibling)">添加</button>
-          </div>
-        </div>
-        <div class="period">
-          <h4>🍱 中午</h4>
-          <div id="todo-noon"></div>
-          <div class="add-row">
-            <input type="text" placeholder="添加待办…" onkeydown="if(event.key==='Enter')addTodo('noon',this)">
-            <button onclick="addTodo('noon',this.previousElementSibling)">添加</button>
           </div>
         </div>
         <div class="period">
@@ -925,12 +917,12 @@ document.getElementById('nav').addEventListener('click', e => {
 });
 
 // ====== 工作待办（按日期存储） ======
-let allTodos = DB.get('todosByDate', {});  // { '2026-07-30': {am:[...],noon:[...],pm:[...]}, ... }
+let allTodos = DB.get('todosByDate', {});  // { '2026-07-30': {am:[...],pm:[...]}, ... }
 let workDate = new Date().toISOString().slice(0,10);  // 当前选中的日期
 
 function getTodos() {
   if (!allTodos[workDate]) {
-    allTodos[workDate] = {am:[],noon:[],pm:[]};
+    allTodos[workDate] = {am:[],pm:[]};
   }
   return allTodos[workDate];
 }
@@ -950,7 +942,7 @@ function fmtDateLabel(dateStr) {
 
 function renderTodos() {
   const todos = getTodos();
-  ['am','noon','pm'].forEach(p => {
+  ['am','pm'].forEach(p => {
     const box = document.getElementById('todo-'+p);
     box.innerHTML = '';
     if (todos[p].length === 0) {
