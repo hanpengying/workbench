@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="工作台">
+<meta name="theme-color" content="#4ea3e5">
+<title>小韩的工作台</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --sidebar: #f4f9fe;
+    --card: #f7fbff;
+    --border: #d6e8f7;
+    --border-soft: #e8f1fa;
+    --accent: #4ea3e5;
+    --accent-soft: #e6f2fc;
+    --accent-dark: #2b7fc4;
+    --text: #2c3e50;
+    --muted: #7d93a8;
+    --danger: #e88080;
+    --income: #57c189;
+    --shadow: 0 2px 10px rgba(120, 180, 230, 0.18);
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; overflow: hidden; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+
+  /* ====== 整体布局 ====== */
+  .app {
+    display: flex;
+    height: 100vh;
+    height: 100dvh;
+    position: relative;
+  }
+  .sidebar {
+    width: 130px;
+    flex-shrink: 0;
+    background: var(--sidebar);
+    border-right: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    z-index: 30;
+  }
+  /* 抽屉触发按钮（仅移动端显示） */
+  .menu-btn {
+    display: none;
+    position: fixed;
+    top: 14px;
+    left: 14px;
+    z-index: 40;
+    width: 42px;
+    height: 42px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    background: #fff;
+    color: var(--accent-dark);
+    font-size: 20px;
+    cursor: pointer;
+    box-shadow: var(--shadow);
+    align-items: center;
+    justify-content: center;
+  }
+  /* 遮罩（仅移动端显示） */
+  .overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(44, 62, 80, 0.35);
+    z-index: 25;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+  .overlay.show { display: block; opacity: 1; }
+  .sidebar-header {
+    padding: 20px 18px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    gap: 8px;
+  }
+  .avatar {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    overflow: hidden;
+    background: var(--accent-soft);
+    border: 2px solid var(--accent);
+    box-shadow: 0 2px 8px rgba(78, 163, 229, 0.25);
+    flex-shrink: 0;
+  }
+  .avatar svg { width: 100%; height: 100%; display: block; }
+  .sidebar-header h1 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--accent-dark);
+    letter-spacing: 0.3px;
+    white-space: nowrap;
+    line-height: 1.3;
+  }
+  .sidebar-header p {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 4px;
+  }
+  .nav {
+    padding: 10px 6px;
+    flex: 1;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 4px;
+    align-content: start;
+  }
+  .nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    padding: 10px 4px;
+    cursor: pointer;
+    color: var(--text);
+    font-size: 11px;
+    border-left: 3px solid transparent;
+    border-radius: 8px;
+    transition: all 0.15s;
+    user-select: none;
+    text-align: center;
+    line-height: 1.2;
+  }
+  .nav-item:hover { background: var(--accent-soft); }
+  .nav-item.active {
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    border-left-color: var(--accent);
+    font-weight: 500;
+  }
+  .nav-item .icon {
+    font-size: 20px;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .nav-item .label {
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .nav-item .arrow { display: none; }
+  .nav-item.active .arrow { display: none; }
+
+  .main {
+    flex: 1;
+    overflow-y: auto;
+    padding: 28px 32px 48px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .panel { display: none; animation: fadeIn 0.25s ease; }
+  .panel.active { display: block; }
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .panel-title {
+    font-size: 22px;
+    font-weight: 600;
+    color: var(--accent-dark);
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .panel-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 6px;
+  }
+  .panel-title-row .panel-title { margin-bottom: 0; }
+  .date-picker {
+    position: relative;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .date-picker input[type="date"] {
+    position: absolute;
+    top: 0; left: 0;
+    width: 40px; height: 40px;
+    opacity: 0;
+    cursor: pointer;
+  }
+  .date-picker .date-icon {
+    width: 40px;
+    height: 40px;
+    cursor: pointer;
+    display: block;
+    transition: transform 0.15s;
+  }
+  .date-picker .date-icon:hover { transform: scale(1.08); }
+  .date-picker .date-icon svg { width: 100%; height: 100%; display: block; }
+  .date-label {
+    font-size: 13px;
+    color: var(--accent-dark);
+    background: var(--accent-soft);
+    padding: 4px 10px;
+    border-radius: 14px;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .panel-sub {
+    color: var(--muted);
+    font-size: 13px;
+    margin-bottom: 22px;
+  }
+
+  /* ====== 卡片 ====== */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 18px 20px;
+    box-shadow: var(--shadow);
+    margin-bottom: 18px;
+  }
+  .card h3 {
+    font-size: 15px;
+    color: var(--accent-dark);
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+
+  /* ====== 工作 - 时段 ====== */
+  .periods { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+  .period {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px;
+  }
+  .period h4 {
+    font-size: 14px;
+    color: var(--accent-dark);
+    margin-bottom: 10px;
+    text-align: center;
+    padding-bottom: 6px;
+    border-bottom: 1px dashed var(--border);
+  }
+  .todo-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+  }
+  .todo-item input[type="checkbox"] {
+    width: 18px; height: 18px;
+    accent-color: var(--accent);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .todo-item span.text {
+    flex: 1;
+    font-size: 13px;
+    cursor: pointer;
+    word-break: break-all;
+  }
+  .todo-item.done span.text { text-decoration: line-through; color: var(--muted); }
+  .todo-item .del {
+    color: var(--danger);
+    cursor: pointer;
+    font-size: 12px;
+    opacity: 0.4;
+  }
+  .todo-item .del:hover { opacity: 1; }
+  .add-row {
+    display: flex;
+    gap: 6px;
+    margin-top: 8px;
+  }
+  .add-row input {
+    flex: 1;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 12px;
+    outline: none;
+  }
+  .add-row input:focus { border-color: var(--accent); }
+  .add-row button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 7px 14px;
+    font-size: 12px;
+    cursor: pointer;
+  }
+  .add-row button:hover { background: var(--accent-dark); }
+
+  /* ====== 手机号（列表式） ====== */
+  .phone-list { display: flex; flex-direction: column; gap: 10px; max-width: 640px; }
+  .phone-row {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: 110px 1fr 1fr 30px;
+    gap: 8px;
+    align-items: center;
+  }
+  .phone-row select, .phone-row input {
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 7px 10px;
+    font-size: 13px;
+    outline: none;
+    background: #fff;
+    width: 100%;
+  }
+  .phone-row input[type="tel"] { letter-spacing: 1px; }
+  .phone-row select:focus, .phone-row input:focus { border-color: var(--accent); }
+  .phone-row .del-btn { color: var(--danger); cursor: pointer; opacity: 0.4; font-size: 16px; text-align: center; }
+  .phone-row .del-btn:hover { opacity: 1; }
+  .phone-add {
+    display: grid;
+    grid-template-columns: 110px 1fr 1fr auto;
+    gap: 8px;
+    margin-top: 12px;
+    max-width: 640px;
+  }
+  .phone-add select, .phone-add input {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    outline: none;
+    background: #fff;
+  }
+  .phone-add select:focus, .phone-add input:focus { border-color: var(--accent); }
+  .phone-add button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .phone-add button:hover { background: var(--accent-dark); }
+  @media (max-width: 720px) {
+    .phone-row { grid-template-columns: 1fr 1fr; }
+    .phone-row .del-btn { grid-column: 1 / -1; text-align: right; }
+    .phone-add { grid-template-columns: 1fr 1fr; }
+    .phone-add button { grid-column: 1 / -1; }
+  }
+
+  /* ====== 表格类：支出/收入/红包 ====== */
+  .fin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    border: 1px solid var(--border);
+  }
+  .fin-table th {
+    background: var(--accent-soft);
+    color: var(--accent-dark);
+    font-weight: 500;
+    padding: 10px 8px;
+    text-align: center;
+  }
+  .fin-table td {
+    padding: 8px;
+    border-top: 1px solid var(--border-soft);
+    text-align: center;
+  }
+  .fin-table .del-btn {
+    color: var(--danger);
+    cursor: pointer;
+    opacity: 0.4;
+  }
+  .fin-table .del-btn:hover { opacity: 1; }
+  .fin-add {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 2fr auto;
+    gap: 8px;
+    margin-top: 14px;
+  }
+  .fin-add input {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    outline: none;
+  }
+  .fin-add input:focus { border-color: var(--accent); }
+  .fin-add button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .fin-add button:hover { background: var(--accent-dark); }
+  .fin-summary {
+    margin-top: 14px;
+    font-size: 14px;
+    text-align: right;
+    color: var(--muted);
+  }
+  .fin-summary b {
+    color: var(--accent-dark);
+    font-size: 16px;
+  }
+
+  /* ====== 记账 ====== */
+  .acc-tabs {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .acc-tab {
+    padding: 8px 18px;
+    border-radius: 20px;
+    background: #fff;
+    border: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+  .acc-tab.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+    font-weight: 500;
+  }
+  .cat-circles {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 14px;
+    margin-bottom: 18px;
+  }
+  .cat-circle {
+    width: 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: pointer;
+    user-select: none;
+  }
+  .cat-circle .name {
+    font-size: 13px;
+    font-weight: 700;
+    color: #000;
+    margin-bottom: 6px;
+    text-align: center;
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+  .cat-circle .circle {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: #fff;
+    border: 2px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    transition: all 0.15s;
+  }
+  .cat-circle:hover .circle { border-color: var(--accent); }
+  .cat-circle.active .circle {
+    border-color: var(--accent);
+    background: var(--accent-soft);
+    transform: scale(1.05);
+  }
+  .cat-circle .circle svg { width: 100%; height: 100%; }
+  .block-h {
+    font-size: 14px;
+    color: var(--accent-dark);
+    margin: 22px 0 10px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--border-soft);
+  }
+  .pie-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 16px;
+  }
+  .pie-box { text-align: center; }
+  .pie-title {
+    font-size: 13px;
+    color: var(--accent-dark);
+    font-weight: 500;
+    margin-bottom: 8px;
+  }
+  .pie { width: 160px; height: 160px; max-width: 100%; }
+  .pie-legend {
+    margin-top: 8px;
+    font-size: 11px;
+    text-align: left;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+  }
+  .pie-legend-item { display: flex; align-items: center; gap: 6px; }
+  .pie-legend-item .dot { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .pie-empty { color: var(--muted); font-size: 12px; padding: 40px 0; }
+  @media (max-width: 720px) {
+    .pie-wrap { grid-template-columns: 1fr; }
+    .cat-circles { gap: 10px; }
+    .cat-circle { width: 56px; }
+    .cat-circle .circle { width: 48px; height: 48px; }
+    .cat-circle .name { font-size: 11px; }
+  }
+
+  /* ====== 家具分类 ====== */
+  .cat-add-row {
+    display: grid;
+    grid-template-columns: 1.4fr 0.8fr 1.4fr 1fr auto;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .cat-add-row input, .cat-add-row select {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px;
+    font-size: 13px;
+    outline: none;
+    background: #fff;
+  }
+  .cat-add-row input:focus, .cat-add-row select:focus { border-color: var(--accent); }
+  .cat-add-row button {
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 8px;
+    padding: 8px 18px;
+    font-size: 13px;
+    cursor: pointer;
+  }
+  .cat-add-row button:hover { background: var(--accent-dark); }
+  .cat-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+  }
+  .cat-tab {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    padding: 6px 16px;
+    font-size: 12px;
+    cursor: pointer;
+    color: var(--muted);
+    transition: all 0.15s;
+  }
+  .cat-tab:hover { border-color: var(--accent); }
+  .cat-tab.active {
+    background: var(--accent);
+    color: #fff;
+    border-color: var(--accent);
+  }
+  .cat-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 10px;
+  }
+  .cat-item {
+    background: #fff;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 14px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 13px;
+  }
+  .cat-item .name { font-weight: 500; color: var(--text); }
+  .cat-item .loc {
+    color: var(--muted);
+    font-size: 11px;
+    margin-top: 4px;
+  }
+  .cat-item .del { color: var(--danger); cursor: pointer; opacity: 0.4; }
+  .cat-item .del:hover { opacity: 1; }
+
+  .empty-hint {
+    color: var(--muted);
+    font-size: 13px;
+    text-align: center;
+    padding: 24px 0;
+  }
+
+  /* ====== 移动端：抽屉式导航 ====== */
+  @media (max-width: 720px) {
+    .menu-btn { display: flex; }
+    .sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      transform: translateX(-100%);
+      transition: transform 0.25s ease;
+      box-shadow: 2px 0 12px rgba(0,0,0,0.12);
+      width: 150px;
+    }
+    .sidebar.open { transform: translateX(0); }
+    .main {
+      padding: 64px 16px 40px;
+    }
+    .panel-title { font-size: 19px; }
+    .periods, .phones { grid-template-columns: 1fr; }
+    .fin-add { grid-template-columns: 1fr 1fr; }
+    .fin-add button { grid-column: 1 / -1; }
+    .cat-add-row { grid-template-columns: 1fr 1fr; }
+    .cat-add-row button { grid-column: 1 / -1; }
+  }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 移动端菜单按钮 -->
+  <button class="menu-btn" onclick="toggleSidebar()">☰</button>
+  <!-- 遮罩 -->
+  <div class="overlay" id="overlay" onclick="toggleSidebar(false)"></div>
+
+  <!-- 左侧导航 -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="avatar" aria-label="小韩的头像">
+        <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <!-- 背景 -->
+          <circle cx="50" cy="50" r="50" fill="#e6f2fc"/>
+          <!-- 头发底色 -->
+          <path d="M22 52 C20 32 32 18 50 18 C68 18 80 32 78 52 L78 58 C74 50 70 44 65 42 C62 38 56 36 50 36 C44 36 38 38 35 42 C30 44 26 50 22 58 Z" fill="#3a3a4a"/>
+          <!-- 脸 -->
+          <ellipse cx="50" cy="52" rx="20" ry="22" fill="#ffe0c2"/>
+          <!-- 头发刘海 -->
+          <path d="M30 42 C34 36 44 34 50 36 C56 34 66 36 70 42 C66 40 58 38 50 40 C42 38 34 40 30 42 Z" fill="#3a3a4a"/>
+          <!-- 腮红 -->
+          <circle cx="36" cy="58" r="3.5" fill="#ffb3a7" opacity="0.7"/>
+          <circle cx="64" cy="58" r="3.5" fill="#ffb3a7" opacity="0.7"/>
+          <!-- 眼睛 -->
+          <circle cx="42" cy="52" r="2.4" fill="#2c3e50"/>
+          <circle cx="58" cy="52" r="2.4" fill="#2c3e50"/>
+          <circle cx="43" cy="51.3" r="0.7" fill="#fff"/>
+          <circle cx="59" cy="51.3" r="0.7" fill="#fff"/>
+          <!-- 嘴 -->
+          <path d="M46 64 Q50 68 54 64" stroke="#e8806a" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <!-- 身体（蓝衣服） -->
+          <path d="M30 96 C30 80 38 74 50 74 C62 74 70 80 70 96 Z" fill="#4ea3e5"/>
+          <!-- 衣领 -->
+          <path d="M44 74 L50 80 L56 74" stroke="#2b7fc4" stroke-width="1.5" fill="none"/>
+        </svg>
+      </div>
+      <h1>✨ 小韩的工作台</h1>
+      <p>点选下方模块查看详情</p>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="nav-item active" data-target="work"><span class="icon">📋</span><span class="label">工作</span><span class="arrow">›</span></div>
+      <div class="nav-item" data-target="phone"><span class="icon">📱</span><span class="label">手机号</span><span class="arrow">›</span></div>
+      <div class="nav-item" data-target="account"><span class="icon">📒</span><span class="label">记账</span><span class="arrow">›</span></div>
+      <div class="nav-item" data-target="hongbao"><span class="icon">🧧</span><span class="label">铭铭的 🧧</span><span class="arrow">›</span></div>
+      <div class="nav-item" data-target="furniture"><span class="icon">🏠</span><span class="label">家具分类</span><span class="arrow">›</span></div>
+    </nav>
+  </aside>
+
+  <!-- 右侧主内容 -->
+  <main class="main">
+
+    <!-- 工作 -->
+    <section class="panel active" id="panel-work">
+      <div class="panel-title-row">
+        <div class="panel-title">📋 工作</div>
+        <div class="date-picker">
+          <label for="work-date" class="date-icon" title="选择日期">
+            <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+              <!-- 底色圆 -->
+              <circle cx="20" cy="20" r="19" fill="#fff" stroke="#4ea3e5" stroke-width="1.5"/>
+              <!-- 挂环 -->
+              <rect x="13" y="6" width="3" height="6" rx="1.5" fill="#2b7fc4"/>
+              <rect x="24" y="6" width="3" height="6" rx="1.5" fill="#2b7fc4"/>
+              <!-- 顶部红条 -->
+              <path d="M9 13 H31 V16 H9 Z" fill="#ff8a8a"/>
+              <!-- 日历身体 -->
+              <rect x="9" y="16" width="22" height="17" rx="2" fill="#f7fbff"/>
+              <!-- 网格点 -->
+              <g fill="#4ea3e5">
+                <circle cx="14" cy="21" r="1.3"/>
+                <circle cx="20" cy="21" r="1.3"/>
+                <circle cx="26" cy="21" r="1.3"/>
+                <circle cx="14" cy="25.5" r="1.3"/>
+                <circle cx="20" cy="25.5" r="1.3"/>
+                <circle cx="26" cy="25.5" r="1.3"/>
+                <circle cx="14" cy="30" r="1.3"/>
+                <circle cx="20" cy="30" r="1.3"/>
+                <circle cx="26" cy="30" r="1.3"/>
+              </g>
+              <!-- 笑脸（卡通常在日期上） -->
+              <circle cx="20" cy="25.5" r="4.5" fill="#fff" stroke="#4ea3e5" stroke-width="1.2"/>
+              <circle cx="18.3" cy="24.5" r="0.7" fill="#2c3e50"/>
+              <circle cx="21.7" cy="24.5" r="0.7" fill="#2c3e50"/>
+              <path d="M18 27 Q20 28.5 22 27" stroke="#e8806a" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+            </svg>
+          </label>
+          <input type="date" id="work-date" onchange="switchWorkDate(this.value)">
+          <span class="date-label" id="work-date-label">今天</span>
+        </div>
+      </div>
+      <div class="panel-sub">按上午 / 中午 / 下午划分，做完打勾 ✅ 标记完成。切换日期可查阅不同天的事项。</div>
+      <div class="periods">
+        <div class="period">
+          <h4>☀️ 上午</h4>
+          <div id="todo-am"></div>
+          <div class="add-row">
+            <input type="text" placeholder="添加待办…" onkeydown="if(event.key==='Enter')addTodo('am',this)">
+            <button onclick="addTodo('am',this.previousElementSibling)">添加</button>
+          </div>
+        </div>
+        <div class="period">
+          <h4>🍱 中午</h4>
+          <div id="todo-noon"></div>
+          <div class="add-row">
+            <input type="text" placeholder="添加待办…" onkeydown="if(event.key==='Enter')addTodo('noon',this)">
+            <button onclick="addTodo('noon',this.previousElementSibling)">添加</button>
+          </div>
+        </div>
+        <div class="period">
+          <h4>🌇 下午</h4>
+          <div id="todo-pm"></div>
+          <div class="add-row">
+            <input type="text" placeholder="添加待办…" onkeydown="if(event.key==='Enter')addTodo('pm',this)">
+            <button onclick="addTodo('pm',this.previousElementSibling)">添加</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 手机号 -->
+    <section class="panel" id="panel-phone">
+      <div class="panel-title">📱 手机号</div>
+      <div class="panel-sub">记录每张卡的运营商、号码和套餐，可随时添加删除</div>
+      <div class="phone-list" id="phone-list"></div>
+      <div class="phone-add">
+        <select id="ph-carrier">
+          <option value="移动">移动</option>
+          <option value="电信">电信</option>
+          <option value="联通">联通</option>
+          <option value="其他">其他</option>
+        </select>
+        <input type="tel" id="ph-number" placeholder="手机号">
+        <input type="text" id="ph-note" placeholder="套餐备注（如：39元/月 100G）">
+        <button onclick="addPhone()">添加</button>
+      </div>
+    </section>
+
+    <!-- 记账 -->
+    <section class="panel" id="panel-account">
+      <div class="panel-title-row">
+        <div class="panel-title">📒 记账</div>
+        <div class="date-picker">
+          <label for="acc-date" class="date-icon" title="选择日期">
+            <svg viewBox="0 0 40 40" xmlns="http://www.w3.org/2000/svg">
+              <circle cx="20" cy="20" r="19" fill="#fff" stroke="#4ea3e5" stroke-width="1.5"/>
+              <rect x="13" y="6" width="3" height="6" rx="1.5" fill="#2b7fc4"/>
+              <rect x="24" y="6" width="3" height="6" rx="1.5" fill="#2b7fc4"/>
+              <path d="M9 13 H31 V16 H9 Z" fill="#ff8a8a"/>
+              <rect x="9" y="16" width="22" height="17" rx="2" fill="#f7fbff"/>
+              <g fill="#4ea3e5">
+                <circle cx="14" cy="21" r="1.3"/><circle cx="20" cy="21" r="1.3"/><circle cx="26" cy="21" r="1.3"/>
+                <circle cx="14" cy="25.5" r="1.3"/><circle cx="26" cy="25.5" r="1.3"/>
+                <circle cx="14" cy="30" r="1.3"/><circle cx="20" cy="30" r="1.3"/><circle cx="26" cy="30" r="1.3"/>
+              </g>
+              <circle cx="20" cy="25.5" r="4.5" fill="#fff" stroke="#4ea3e5" stroke-width="1.2"/>
+              <circle cx="18.3" cy="24.5" r="0.7" fill="#2c3e50"/>
+              <circle cx="21.7" cy="24.5" r="0.7" fill="#2c3e50"/>
+              <path d="M18 27 Q20 28.5 22 27" stroke="#e8806a" stroke-width="1.1" fill="none" stroke-linecap="round"/>
+            </svg>
+          </label>
+          <input type="date" id="acc-date" onchange="switchAccDate(this.value)">
+          <span class="date-label" id="acc-date-label">今天</span>
+        </div>
+      </div>
+      <div class="panel-sub">选择分类记账，自动统计支出/收入占比。</div>
+
+      <!-- 切换支出/收入 -->
+      <div class="acc-tabs">
+        <span class="acc-tab active" data-type="expense" onclick="switchAccType('expense')">💸 支出</span>
+        <span class="acc-tab" data-type="income" onclick="switchAccType('income')">💰 收入</span>
+      </div>
+
+      <!-- 圆形分类按钮 -->
+      <div class="cat-circles" id="cat-circles"></div>
+
+      <!-- 当前选中分类 + 录入 -->
+      <div class="acc-form">
+        <input type="hidden" id="acc-cat">
+        <div class="fin-add" style="grid-template-columns: 1.2fr 2fr auto;">
+          <input type="number" id="acc-amount" placeholder="金额">
+          <input type="text" id="acc-note" placeholder="具体事项（可选）">
+          <button onclick="addAcc()">记一笔</button>
+        </div>
+      </div>
+
+      <!-- 当日记录 -->
+      <h4 class="block-h">当日明细</h4>
+      <table class="fin-table">
+        <thead><tr><th>分类</th><th>金额</th><th>事项</th><th></th></tr></thead>
+        <tbody id="acc-list"></tbody>
+      </table>
+
+      <!-- 饼图占比分析 -->
+      <h4 class="block-h">📊 占比分析</h4>
+      <div class="pie-wrap">
+        <div class="pie-box" id="pie-expense-box">
+          <div class="pie-title">支出占比</div>
+          <svg viewBox="0 0 200 200" class="pie" id="pie-expense"></svg>
+          <div class="pie-legend" id="legend-expense"></div>
+        </div>
+        <div class="pie-box" id="pie-income-box">
+          <div class="pie-title">收入占比</div>
+          <svg viewBox="0 0 200 200" class="pie" id="pie-income"></svg>
+          <div class="pie-legend" id="legend-income"></div>
+        </div>
+      </div>
+
+      <div class="fin-summary" id="acc-summary"></div>
+    </section>
+
+    <!-- 铭铭的红包 -->
+    <section class="panel" id="panel-hongbao">
+      <div class="panel-title">🧧 铭铭的红包</div>
+      <div class="panel-sub">记录每个红包，自动累计总额</div>
+      <table class="fin-table">
+        <thead><tr><th>时间</th><th>金额</th><th>具体事项</th><th></th></tr></thead>
+        <tbody id="hongbao-list"></tbody>
+      </table>
+      <div class="fin-add">
+        <input type="date" id="hb-date">
+        <input type="number" id="hb-amount" placeholder="金额">
+        <input type="text" id="hb-note" placeholder="具体事项">
+        <button onclick="addFin('hongbao')">添加</button>
+      </div>
+      <div class="fin-summary" id="hb-summary"></div>
+    </section>
+
+    <!-- 家具分类 -->
+    <section class="panel" id="panel-furniture">
+      <div class="panel-title">🏠 家具分类 / 消耗品</div>
+      <div class="panel-sub">记下每件物品放在哪个箱子，不再忘记</div>
+      <div class="cat-add-row">
+        <input type="text" id="cat-name" placeholder="物品名称">
+        <input type="number" id="cat-qty" placeholder="数量" min="0" step="any">
+        <input type="text" id="cat-loc" placeholder="存放位置 / 箱号">
+        <select id="cat-cat">
+          <option value="榻榻米床下">榻榻米床下</option>
+          <option value="冰箱上面橱柜">冰箱上面橱柜</option>
+          <option value="洗衣机旁橱柜">洗衣机旁橱柜</option>
+          <option value="其他">其他</option>
+        </select>
+        <button onclick="addCatItem()">添加</button>
+      </div>
+      <div class="cat-tabs" id="cat-tabs"></div>
+      <div class="cat-items" id="cat-items"></div>
+    </section>
+
+  </main>
+</div>
+
+<script>
+// ====== 数据存储 ======
+const DB = {
+  get(key, def) {
+    try { return JSON.parse(localStorage.getItem('wb_'+key)) || def; }
+    catch(e) { return def; }
+  },
+  set(key, val) { localStorage.setItem('wb_'+key, JSON.stringify(val)); }
+};
+
+// ====== 抽屉式导航控制 ======
+function toggleSidebar(force) {
+  const sb = document.querySelector('.sidebar');
+  const ov = document.getElementById('overlay');
+  const willOpen = force !== undefined ? force : !sb.classList.contains('open');
+  sb.classList.toggle('open', willOpen);
+  ov.classList.toggle('show', willOpen);
+}
+
+// ====== 导航切换 ======
+document.getElementById('nav').addEventListener('click', e => {
+  const item = e.target.closest('.nav-item');
+  if (!item) return;
+  const target = item.dataset.target;
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n === item));
+  document.querySelectorAll('.panel').forEach(p => p.classList.toggle('active', p.id === 'panel-' + target));
+  document.querySelector('.main').scrollTop = 0;
+  // 移动端选完自动收起
+  if (window.innerWidth <= 720) toggleSidebar(false);
+});
+
+// ====== 工作待办（按日期存储） ======
+let allTodos = DB.get('todosByDate', {});  // { '2026-07-30': {am:[...],noon:[...],pm:[...]}, ... }
+let workDate = new Date().toISOString().slice(0,10);  // 当前选中的日期
+
+function getTodos() {
+  if (!allTodos[workDate]) {
+    allTodos[workDate] = {am:[],noon:[],pm:[]};
+  }
+  return allTodos[workDate];
+}
+
+function saveTodos() {
+  DB.set('todosByDate', allTodos);
+}
+
+function fmtDateLabel(dateStr) {
+  if (!dateStr) return '今天';
+  const today = new Date().toISOString().slice(0,10);
+  if (dateStr === today) return '今天';
+  const d = new Date(dateStr);
+  const w = ['周日','周一','周二','周三','周四','周五','周六'][d.getDay()];
+  return `${dateStr.slice(5)} ${w}`;
+}
+
+function renderTodos() {
+  const todos = getTodos();
+  ['am','noon','pm'].forEach(p => {
+    const box = document.getElementById('todo-'+p);
+    box.innerHTML = '';
+    if (todos[p].length === 0) {
+      box.innerHTML = '<div class="empty-hint">暂无事项</div>';
+      return;
+    }
+    todos[p].forEach((t, i) => {
+      const item = document.createElement('div');
+      item.className = 'todo-item' + (t.done ? ' done' : '');
+      item.innerHTML = `<input type="checkbox" ${t.done?'checked':''} onchange="toggleTodo('${p}',${i})"><span class="text" onclick="toggleTodo('${p}',${i})">${escapeHtml(t.text)}</span><span class="del" onclick="delTodo('${p}',${i})">✕</span>`;
+      box.appendChild(item);
+    });
+  });
+  // 更新日期标签
+  const labelEl = document.getElementById('work-date-label');
+  if (labelEl) labelEl.textContent = fmtDateLabel(workDate);
+  const dateInput = document.getElementById('work-date');
+  if (dateInput) dateInput.value = workDate;
+}
+
+function switchWorkDate(val) {
+  if (!val) return;
+  workDate = val;
+  renderTodos();
+}
+
+function addTodo(p, input) {
+  const text = input.value.trim();
+  if (!text) return;
+  const todos = getTodos();
+  todos[p].push({text, done:false});
+  saveTodos();
+  input.value = '';
+  renderTodos();
+}
+function toggleTodo(p, i) {
+  const todos = getTodos();
+  todos[p][i].done = !todos[p][i].done;
+  saveTodos();
+  renderTodos();
+}
+function delTodo(p, i) {
+  const todos = getTodos();
+  todos[p].splice(i, 1);
+  saveTodos();
+  renderTodos();
+}
+
+// ====== 手机号（列表式） ======
+let phones = DB.get('phones', []);
+function renderPhones() {
+  const list = document.getElementById('phone-list');
+  list.innerHTML = '';
+  if (phones.length === 0) {
+    list.innerHTML = '<div class="empty-hint">暂无手机号，下面添加一张吧</div>';
+    return;
+  }
+  phones.forEach((p, i) => {
+    const row = document.createElement('div');
+    row.className = 'phone-row';
+    row.innerHTML = `
+      <select onchange="updatePhone(${i},'carrier',this.value)">
+        <option value="移动" ${p.carrier==='移动'?'selected':''}>移动</option>
+        <option value="电信" ${p.carrier==='电信'?'selected':''}>电信</option>
+        <option value="联通" ${p.carrier==='联通'?'selected':''}>联通</option>
+        <option value="其他" ${p.carrier==='其他'?'selected':''}>其他</option>
+      </select>
+      <input type="tel" value="${escapeAttr(p.number)}" placeholder="手机号" onchange="updatePhone(${i},'number',this.value)">
+      <input type="text" value="${escapeAttr(p.note)}" placeholder="套餐备注" onchange="updatePhone(${i},'note',this.value)">
+      <span class="del-btn" onclick="delPhone(${i})">✕</span>`;
+    list.appendChild(row);
+  });
+}
+function addPhone() {
+  const carrier = document.getElementById('ph-carrier').value;
+  const number = document.getElementById('ph-number').value.trim();
+  const note = document.getElementById('ph-note').value.trim();
+  if (!number) return;
+  phones.push({carrier, number, note});
+  DB.set('phones', phones);
+  document.getElementById('ph-number').value = '';
+  document.getElementById('ph-note').value = '';
+  renderPhones();
+}
+function updatePhone(i, k, v) {
+  phones[i][k] = v;
+  DB.set('phones', phones);
+}
+function delPhone(i) {
+  phones.splice(i, 1);
+  DB.set('phones', phones);
+  renderPhones();
+}
+
+// ====== 红包记录（沿用旧 fin 逻辑） ======
+function renderFin(type) {
+  const list = DB.get(type, []);
+  const tbody = document.getElementById(type+'-list');
+  tbody.innerHTML = '';
+  let total = 0;
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-hint">暂无记录</td></tr>';
+  } else {
+    list.forEach((r, i) => {
+      total += parseFloat(r.amount) || 0;
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${r.date}</td><td>¥${r.amount}</td><td>${escapeHtml(r.note)}</td><td class="del-btn" onclick="delFin('${type}',${i})">✕</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  const label = '累计红包';
+  document.getElementById('hb-summary').innerHTML = `<b>${label}：¥${total.toFixed(2)}</b>`;
+}
+function addFin(type) {
+  const prefix = 'hb';
+  const date = document.getElementById(prefix+'-date').value;
+  const amount = document.getElementById(prefix+'-amount').value;
+  const note = document.getElementById(prefix+'-note').value.trim();
+  if (!date || !amount) return;
+  const list = DB.get(type, []);
+  list.unshift({date, amount, note});
+  DB.set(type, list);
+  document.getElementById(prefix+'-date').value = '';
+  document.getElementById(prefix+'-amount').value = '';
+  document.getElementById(prefix+'-note').value = '';
+  renderFin(type);
+}
+function delFin(type, i) {
+  const list = DB.get(type, []);
+  list.splice(i, 1);
+  DB.set(type, list);
+  renderFin(type);
+}
+
+// ====== 记账（支出/收入合并） ======
+const ACC_CATS = {
+  expense: ['餐饮', '交通', '购物', '居住', '买菜'],
+  income: ['工资', '红包', '节日卡']
+};
+const ACC_COLORS = {
+  '餐饮':'#ff8a8a','交通':'#4ea3e5','购物':'#b388eb','居住':'#57c189','买菜':'#f4c542',
+  '工资':'#57c189','红包':'#ff8a8a','节日卡':'#b388eb'
+};
+// 每个分类的淡色卡通 SVG
+const CAT_SVGS = {
+  '餐饮': `<svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="27" fill="#fff5f0"/><path d="M14 26 C14 18 20 14 28 14 C36 14 42 18 42 26 L42 30 C42 38 36 44 28 44 C20 44 14 38 14 30 Z" fill="#ffd4b8"/><path d="M14 28 Q28 32 42 28" stroke="#e8806a" stroke-width="1.5" fill="none"/><circle cx="22" cy="24" r="1.5" fill="#2c3e50"/><circle cx="34" cy="24" r="1.5" fill="#2c3e50"/><path d="M24 31 Q28 34 32 31" stroke="#e8806a" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>`,
+  '交通': `<svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="27" fill="#f0f7fc"/><rect x="14" y="24" width="28" height="14" rx="3" fill="#4ea3e5"/><path d="M16 24 L20 18 L36 18 L40 24 Z" fill="#7ec3ef"/><circle cx="20" cy="38" r="4" fill="#2c3e50"/><circle cx="36" cy="38" r="4" fill="#2c3e50"/><circle cx="20" cy="38" r="1.5" fill="#fff"/><circle cx="36" cy="38" r="1.5" fill="#fff"/><rect x="17" y="27" width="6" height="6" fill="#fff" opacity="0.6"/><rect x="33" y="27" width="6" height="6" fill="#fff" opacity="0.6"/></svg>`,
+  '购物': `<svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="27" fill="#f7f0fc"/><path d="M18 22 L38 22 L36 42 L20 42 Z" fill="#b388eb"/><path d="M22 22 C22 16 24 14 28 14 C32 14 34 16 34 22" stroke="#7d3eb8" stroke-width="1.8" fill="none"/><circle cx="24" cy="30" r="1.5" fill="#fff"/><circle cx="32" cy="30" r="1.5" fill="#fff"/></svg>`,
+  '居住': `<svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="27" fill="#f0fcf5"/><path d="M14 30 L28 16 L42 30 L42 42 L14 42 Z" fill="#57c189"/><rect x="24" y="34" width="8" height="8" fill="#fff" opacity="0.7"/><rect x="17" y="34" width="4" height="4" fill="#fff" opacity="0.5"/><rect x="35" y="34" width="4" height="4" fill="#fff" opacity="0.5"/></svg>`,
+  '买菜': `<svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="27" fill="#fffdf0"/><path d="M18 20 L38 20 L36 42 L20 42 Z" fill="#f4c542"/><path d="M22 20 C22 14 24 12 28 12 C32 12 34 14 34 20" stroke="#c89818" stroke-width="1.8" fill="none"/><circle cx="24" cy="30" r="1.5" fill="#fff"/><circle cx="32" cy="30" r="1.5" fill="#fff"/><path d="M24 36 Q28 38 32 36" stroke="#c89818" stroke-width="1.2" fill="none" stroke-linecap="round"/></svg>`,
+  '工资': `<svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="27" fill="#f0fcf5"/><rect x="14" y="22" width="28" height="16" rx="2" fill="#57c189"/><circle cx="28" cy="30" r="6" fill="#fff"/><text x="28" y="33" text-anchor="middle" font-size="9" font-weight="bold" fill="#57c189">¥</text></svg>`,
+  '红包': `<svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="27" fill="#fff5f0"/><rect x="16" y="14" width="24" height="30" rx="3" fill="#ff6b6b"/><circle cx="28" cy="22" r="4" fill="#ffd4b8"/><path d="M22 22 L28 28 L34 22" stroke="#fff" stroke-width="1.5" fill="none"/><rect x="22" y="32" width="12" height="3" rx="1" fill="#fff" opacity="0.6"/></svg>`,
+  '节日卡': `<svg viewBox="0 0 56 56"><circle cx="28" cy="28" r="27" fill="#f7f0fc"/><rect x="14" y="18" width="28" height="20" rx="2" fill="#b388eb"/><rect x="18" y="22" width="10" height="3" fill="#fff" opacity="0.8"/><rect x="18" y="28" width="16" height="2" fill="#fff" opacity="0.5"/><rect x="18" y="32" width="8" height="2" fill="#fff" opacity="0.5"/><circle cx="36" cy="32" r="2" fill="#fff" opacity="0.7"/></svg>`
+};
+
+let allAcc = DB.get('account', {});  // { '2026-07-30': [ {type,cat,amount,note}, ... ], ... }
+let accDate = new Date().toISOString().slice(0,10);
+let accType = 'expense';
+let accCat = '';
+
+function getAccList() {
+  if (!allAcc[accDate]) allAcc[accDate] = [];
+  return allAcc[accDate];
+}
+function saveAcc() { DB.set('account', allAcc); }
+
+function switchAccType(t) {
+  accType = t;
+  accCat = '';
+  document.querySelectorAll('.acc-tab').forEach(x => x.classList.toggle('active', x.dataset.type === t));
+  renderCatCircles();
+  renderAccList();
+  renderPies();
+}
+function switchAccDate(val) {
+  if (!val) return;
+  accDate = val;
+  document.getElementById('acc-date-label').textContent = fmtDateLabel(accDate);
+  document.getElementById('acc-date').value = accDate;
+  renderAccList();
+  renderPies();
+}
+
+function renderCatCircles() {
+  const box = document.getElementById('cat-circles');
+  box.innerHTML = '';
+  ACC_CATS[accType].forEach(c => {
+    const el = document.createElement('div');
+    el.className = 'cat-circle' + (c === accCat ? ' active' : '');
+    el.onclick = () => { accCat = c; renderCatCircles(); document.getElementById('acc-cat').value = c; document.getElementById('acc-amount').focus(); };
+    el.innerHTML = `<div class="name">${c}</div><div class="circle">${CAT_SVGS[c] || ''}</div>`;
+    box.appendChild(el);
+  });
+}
+
+function addAcc() {
+  if (!accCat) { alert('请先选择一个分类'); return; }
+  const amount = document.getElementById('acc-amount').value;
+  const note = document.getElementById('acc-note').value.trim();
+  if (!amount) return;
+  const list = getAccList();
+  list.push({type: accType, cat: accCat, amount, note});
+  saveAcc();
+  document.getElementById('acc-amount').value = '';
+  document.getElementById('acc-note').value = '';
+  renderAccList();
+  renderPies();
+}
+function delAcc(i) {
+  const list = getAccList();
+  list.splice(i, 1);
+  saveAcc();
+  renderAccList();
+  renderPies();
+}
+
+function renderAccList() {
+  const list = getAccList().filter(r => r.type === accType);
+  const tbody = document.getElementById('acc-list');
+  tbody.innerHTML = '';
+  let total = 0;
+  if (list.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" class="empty-hint">暂无记录</td></tr>';
+  } else {
+    list.forEach(r => {
+      total += parseFloat(r.amount) || 0;
+      const i = getAccList().indexOf(r);
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${r.cat}</td><td>¥${r.amount}</td><td>${escapeHtml(r.note||'')}</td><td class="del-btn" onclick="delAcc(${i})">✕</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  const label = accType === 'expense' ? '当日支出' : '当日收入';
+  document.getElementById('acc-summary').innerHTML = `<b>${label}：¥${total.toFixed(2)}</b>`;
+}
+
+// ====== 饼图绘制 ======
+function renderPies() {
+  const list = getAccList();
+  ['expense','income'].forEach(t => {
+    const items = list.filter(r => r.type === t);
+    const svg = document.getElementById('pie-' + t);
+    const legend = document.getElementById('legend-' + t);
+    if (items.length === 0) {
+      svg.innerHTML = '<text x="100" y="105" text-anchor="middle" fill="#7d93a8" font-size="12">暂无数据</text>';
+      legend.innerHTML = '';
+      return;
+    }
+    // 按分类聚合
+    const sumMap = {};
+    items.forEach(r => {
+      sumMap[r.cat] = (sumMap[r.cat] || 0) + (parseFloat(r.amount) || 0);
+    });
+    const arr = Object.entries(sumMap).sort((a,b) => b[1] - a[1]);
+    const total = arr.reduce((s, x) => s + x[1], 0);
+    // 画饼
+    let startAngle = -Math.PI / 2;
+    const cx = 100, cy = 100, r = 80;
+    let paths = '';
+    arr.forEach(([cat, val]) => {
+      const angle = (val / total) * Math.PI * 2;
+      const endAngle = startAngle + angle;
+      const x1 = cx + r * Math.cos(startAngle);
+      const y1 = cy + r * Math.sin(startAngle);
+      const x2 = cx + r * Math.cos(endAngle);
+      const y2 = cy + r * Math.sin(endAngle);
+      const large = angle > Math.PI ? 1 : 0;
+      const color = ACC_COLORS[cat] || '#ccc';
+      if (arr.length === 1) {
+        // 只有一类时画整圆
+        paths += `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"/>`;
+      } else {
+        paths += `<path d="M${cx},${cy} L${x1},${y1} A${r},${r} 0 ${large} 1 ${x2},${y2} Z" fill="${color}" stroke="#fff" stroke-width="1.5"/>`;
+      }
+      startAngle = endAngle;
+    });
+    svg.innerHTML = paths;
+    // 图例
+    legend.innerHTML = arr.map(([cat, val]) => {
+      const pct = (val / total * 100).toFixed(1);
+      return `<div class="pie-legend-item"><span class="dot" style="background:${ACC_COLORS[cat]||'#ccc'}"></span>${cat} ¥${val.toFixed(2)} (${pct}%)</div>`;
+    }).join('');
+  });
+}
+
+// ====== 家具分类 ======
+let catItems = DB.get('catItems', []);
+let activeCat = '全部';
+function renderCats() {
+  const cats = ['全部', ...new Set(catItems.map(c => c.cat))];
+  const tabs = document.getElementById('cat-tabs');
+  tabs.innerHTML = '';
+  cats.forEach(c => {
+    const tab = document.createElement('span');
+    tab.className = 'cat-tab' + (c === activeCat ? ' active' : '');
+    tab.textContent = c;
+    tab.onclick = () => { activeCat = c; renderCats(); };
+    tabs.appendChild(tab);
+  });
+  const box = document.getElementById('cat-items');
+  box.innerHTML = '';
+  const filtered = activeCat === '全部' ? catItems : catItems.filter(c => c.cat === activeCat);
+  if (filtered.length === 0) {
+    box.innerHTML = '<div class="empty-hint" style="grid-column:1/-1">暂无物品，快添加吧～</div>';
+    return;
+  }
+  filtered.forEach(item => {
+    const idx = catItems.indexOf(item);
+    const el = document.createElement('div');
+    el.className = 'cat-item';
+    const qty = item.qty !== undefined && item.qty !== '' ? ` × ${escapeHtml(item.qty)}` : '';
+    el.innerHTML = `<div><div class="name">${escapeHtml(item.name)}${qty}</div><div class="loc">📍 ${escapeHtml(item.loc||'未标位置')} · ${escapeHtml(item.cat)}</div></div><span class="del" onclick="delCat(${idx})">✕</span>`;
+    box.appendChild(el);
+  });
+}
+function addCatItem() {
+  const name = document.getElementById('cat-name').value.trim();
+  const qty = document.getElementById('cat-qty').value.trim();
+  const loc = document.getElementById('cat-loc').value.trim();
+  const cat = document.getElementById('cat-cat').value;
+  if (!name) return;
+  catItems.push({name, qty, loc, cat});
+  DB.set('catItems', catItems);
+  document.getElementById('cat-name').value = '';
+  document.getElementById('cat-qty').value = '';
+  document.getElementById('cat-loc').value = '';
+  renderCats();
+}
+function delCat(i) {
+  catItems.splice(i, 1);
+  DB.set('catItems', catItems);
+  renderCats();
+}
+
+// ====== 工具 ======
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function escapeAttr(s) {
+  return String(s||'').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+}
+
+// ====== 初始化 ======
+renderTodos();
+renderPhones();
+renderCatCircles();
+renderAccList();
+renderPies();
+document.getElementById('acc-date-label').textContent = '今天';
+document.getElementById('acc-date').value = new Date().toISOString().slice(0,10);
+renderFin('hongbao');
+renderCats();
+// 默认日期填今天
+const today = new Date().toISOString().slice(0,10);
+['hb'].forEach(p => {
+  const el = document.getElementById(p+'-date');
+  if (el) el.value = today;
+});
+</script>
+</body>
+</html>
