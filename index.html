@@ -1026,6 +1026,26 @@ function addPhone() {
   document.getElementById('ph-number').value = '';
   document.getElementById('ph-note').value = '';
   renderPhones();
+
+// ====== 预填手机号数据 ======
+(function(){
+  const preset = [
+    {carrier:"移动", number:"13780282020", note:"不超过20元套餐"},
+    {carrier:"移动", number:"17822102401", note:"每月87元 宽带两个副号"},
+    {carrier:"移动", number:"17822428207", note:"妈妈手机号"},
+    {carrier:"移动", number:"18322488601", note:"婆婆手机号"},
+    {carrier:"电信", number:"19097918842", note:"每个月19元 270G"},
+    {carrier:"联通", number:"13211504845", note:"26年5月开户 每月19"}
+  ];
+  const existing = DB.get('phones', []);
+  if (existing.length === 0) {
+    DB.set('phones', preset);
+    phones = preset;
+    renderPhones();
+    console.log('预填手机号完成');
+  }
+})();
+
 }
 function updatePhone(i, k, v) {
   phones[i][k] = v;
